@@ -60,14 +60,16 @@ Trois "cerveaux" séparés, derrière une API.
 └──────────┘  └───────┬───────┘  └─────────────────┘
                       │
                       ▼
-              ┌───────────────┐
-              │ DB            │
-              │ - users       │
-              │ - skill_levels│
-              │ - attempts    │
-              │ - knowledge   │
-              │ - conv_turns  │
-              └───────────────┘
+              ┌────────────────────┐
+              │ DB                 │
+              │ - users            │
+              │ - profiles         │
+              │ - skill_levels     │
+              │ - exercises        │
+              │ - attempts         │
+              │ - knowledge_items  │
+              │ - conversation_turns│
+              └────────────────────┘
 ```
 
 **Principe de séparation** :
@@ -101,11 +103,15 @@ Le chat agent ne lit ni n'écrit la DB directement. Tout passe par les outils.
 
 ### 4.5 `pedagogical_engine`
 Code pur, pas d'appel LLM. Responsabilités :
-- Modèle utilisateur : niveau CEFR par compétence + confidence.
-- Stratégie de sélection MVP : "cible la compétence dont (cefr_estimate × confidence) est la plus basse, en respectant un domaine actif du profil, et varie le type d'exercice".
-- File de révision Leitner 5-boîtes pour `knowledge_items` (vocab, règles de grammaire).
-- Anti-boucle : refuse 2 fois le même type d'exercice consécutif.
-- Cold-start safety : tant que `confidence < 0.5`, la difficulté est plafonnée à l'estimation issue du placement.
+- **Modèle utilisateur** : niveau CEFR par compétence + confidence.
+- **Stratégie de sélection MVP** (deux phases déterministes) :
+  - *Phase cold-start* — tant qu'au moins une compétence a `confidence < 0.5` : round-robin sur les 4 compétences (cycle reading → writing → vocab → grammar) pour collecter du signal partout.
+  - *Phase stable* — toutes les compétences ont `confidence ≥ 0.5` : cible la compétence avec le `cefr_estimate` le plus bas ; égalité tranchée par tirage pseudo-aléatoire seedé sur `user_id + date`.
+- **Choix du topic** : sampling pondéré dans `profile.domains` ∪ `profile.interests`, avec rotation pour éviter le même topic deux fois de suite. Si `goal_text` non vide, il est passé en contexte au générateur mais ne définit pas le topic seul.
+- **Choix du type d'exercice** : déterminé par la compétence ciblée (table fixe skill→types possibles), avec **anti-boucle** : refuse 2 fois le même type consécutif.
+- **File de révision Leitner 5-boîtes** pour `knowledge_items`. Quand un item arrive à `next_review_at`, l'engine peut le prioriser sur la stratégie ci-dessus (limite : 1 item de révision tous les 3 exercices, pour ne pas étouffer la progression).
+- **Cold-start safety** : tant que `confidence < 0.5` pour la compétence ciblée, la difficulté est plafonnée à l'estimation issue du placement.
+- **Mise à jour des niveaux après attempt** : delta = `±step × (1 - confidence)`, où `step = 0.1` (sur l'échelle CEFR numérique 0-6), signe selon score (positif si ≥ 0.7, négatif si ≤ 0.3, nul sinon). `confidence` augmente de `+0.02` par attempt jusqu'à plafond 0.95.
 
 ### 4.6 `exercise_generator`
 LLM appelé avec une spec stricte : `{type, skill, cefr, topic, domain, length_hint}`. Retourne un JSON conforme à un schéma : `payload` (énoncé + options/champ) et `answer_key` (réponse(s) attendue(s) + critères pour le LLM-juge).
@@ -127,7 +133,7 @@ Agrège `attempts` pour afficher à l'utilisateur : niveau global estimé (moyen
 `user_id`, `skill` (`reading` | `writing` | `vocab` | `grammar`), `cefr_estimate` (score numérique 0–6 ↔ A1–C2 ; exposé en CEFR à l'UI), `confidence` (0.0–1.0), `updated_at`. Quatre lignes par utilisateur après placement.
 
 ### 5.4 `exercises`
-`id`, `user_id` (nullable pour templates), `type`, `skill`, `cefr`, `topic`, `domain`, `payload` (JSON), `answer_key` (JSON), `created_at`.
+`id`, `user_id`, `type`, `skill`, `cefr`, `topic`, `domain`, `payload` (JSON), `answer_key` (JSON), `created_at`. Tout exercice appartient à un utilisateur (y compris les items de placement). Pas de notion de template partagé au MVP.
 
 ### 5.5 `attempts`
 `id`, `user_id`, `exercise_id`, `response` (texte), `score` (0.0–1.0), `feedback` (texte court), `created_at`.
@@ -136,7 +142,9 @@ Agrège `attempts` pour afficher à l'utilisateur : niveau global estimé (moyen
 `id`, `user_id`, `kind` (`vocab` | `grammar_rule`), `value`, `mastery` (0–5, Leitner), `next_review_at`, `last_seen_at`.
 
 ### 5.7 `conversation_turns`
-`id`, `user_id`, `session_id` (uuid par session ou par jour), `role` (`user` | `assistant` | `tool`), `content`, `tool_name`, `tool_payload`, `created_at`.
+`id`, `user_id`, `session_id` (uuid par session ou par jour), `role` (`user` | `assistant` | `tool` | `system_summary`), `content`, `tool_name`, `tool_payload`, `created_at`.
+
+Le rôle `system_summary` héberge les résumés générés lors de la troncature de contexte (voir §7) : un seul résumé "actif" par session, remplacé par un nouveau quand l'historique grandit à nouveau.
 
 ### Choix volontaires
 - Pas de table `placement_results` séparée : le placement écrit directement dans `skill_levels` et ses items sont des `exercises` + `attempts` normaux.
@@ -196,7 +204,7 @@ Pas de matching exact. Appel d'un LLM-juge avec rubrique (grammar 0-3, lexicon 0
 | Cold start sans reco possible | Reco par défaut : vocab, niveau le plus bas estimé, topic = 1ᵉʳ domaine du profil. |
 | Session JWT expirée | Écran login propre ; les drafts dans la carte exercice sont persistés en local pour ne pas perdre la saisie. |
 | Suppression de compte | Cascade sur toutes les tables. Pas d'archivage MVP. |
-| Conversation très longue | Envoi LLM tronqué aux N derniers turns (défaut N = 30) + résumé compressé périodique des plus anciens. La DB garde tout. |
+| Conversation très longue | Envoi LLM tronqué aux N derniers turns (défaut N = 30). Tous les ~50 turns, un appel LLM génère un résumé compressé des turns plus anciens et le persiste en tant que `conversation_turns.role = system_summary` (un seul résumé actif par session). La DB garde tout l'historique brut. |
 | Coûts qui dérapent | Limite par utilisateur/jour configurable (défaut ~50 appels LLM). Au dépassement : message "reviens demain" — sain pédagogiquement aussi. |
 
 ## 8. Stratégie de tests
