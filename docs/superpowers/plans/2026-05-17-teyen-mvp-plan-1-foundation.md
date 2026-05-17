@@ -146,7 +146,7 @@ git commit -m "feat: scaffold Next.js 15 app router with tailwind and src dir"
 
 - [ ] **Step 1: Ouvrir tsconfig.json et durcir la config**
 
-Remplacer `compilerOptions` par cette version stricte :
+Remplacer le contenu entier de `tsconfig.json` par cette version. On préserve les `include` et `plugins` générés par Next 16, on ajoute les flags stricts manquants, on remet `target: ES2022`, `allowJs: false`, et on garde `jsx: "react-jsx"` (valeur Next 16) :
 
 ```json
 {
@@ -156,8 +156,6 @@ Remplacer `compilerOptions` par cette version stricte :
     "allowJs": false,
     "skipLibCheck": true,
     "strict": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
     "forceConsistentCasingInFileNames": true,
@@ -167,15 +165,24 @@ Remplacer `compilerOptions` par cette version stricte :
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true,
     "plugins": [{ "name": "next" }],
     "paths": { "@/*": ["./src/*"] }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    "**/*.mts"
+  ],
   "exclude": ["node_modules"]
 }
 ```
+
+> Note : `strict: true` implique déjà `noImplicitAny` et `strictNullChecks`, donc on ne les répète pas. On ajoute explicitement les trois flags qui ne sont pas dans `strict` : `noUncheckedIndexedAccess`, `noImplicitOverride`, `forceConsistentCasingInFileNames`.
 
 - [ ] **Step 2: Vérifier que la compilation passe encore**
 
@@ -1177,10 +1184,10 @@ git commit -m "test(db): smoke test connection to all 7 tables"
 
 ## Phase 2 — Auth et pages
 
-### Task 15: Clients Supabase (serveur + navigateur)
+### Task 15: Clients Supabase (serveur + helper proxy)
 
 **Files:**
-- Create: `src/lib/supabase/server.ts`, `src/lib/supabase/middleware.ts`
+- Create: `src/lib/supabase/server.ts`, `src/lib/supabase/proxy-helper.ts`
 - Modify: `package.json`
 
 - [ ] **Step 1: Installer le SDK Supabase Auth Helpers pour Next.js**
@@ -1219,9 +1226,9 @@ export async function createSupabaseServerClient() {
 }
 ```
 
-- [ ] **Step 3: Helper middleware (rafraîchit la session)**
+- [ ] **Step 3: Helper proxy (rafraîchit la session)**
 
-Créer `src/lib/supabase/middleware.ts` :
+Créer `src/lib/supabase/proxy-helper.ts`. En Next 16, la convention `middleware.ts` est renommée `proxy.ts`, et la fonction exportée doit s'appeler `proxy`. Ce helper est appelé par le `proxy.ts` racine (Task 16) :
 
 ```typescript
 import { createServerClient } from '@supabase/ssr';
@@ -1266,29 +1273,31 @@ Expected : 0 erreur.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add -A
-git commit -m "feat(auth): supabase server and middleware clients"
+git add src/lib/supabase package.json pnpm-lock.yaml
+git commit -m "feat(auth): supabase server client and proxy session helper"
 ```
 
 ---
 
-### Task 16: Middleware Next.js pour protéger les routes `(app)`
+### Task 16: Proxy Next.js pour protéger les routes `(app)`
+
+En Next 16, la convention `middleware.ts` est renommée `proxy.ts`. Même mécanisme, nouveau nom.
 
 **Files:**
-- Create: `src/middleware.ts`
+- Create: `src/proxy.ts`
 
-- [ ] **Step 1: Créer le middleware**
+- [ ] **Step 1: Créer le proxy**
 
-Créer `src/middleware.ts` :
+Créer `src/proxy.ts` :
 
 ```typescript
 import { NextResponse, type NextRequest } from 'next/server';
-import { updateSession } from '@/lib/supabase/middleware';
+import { updateSession } from '@/lib/supabase/proxy-helper';
 
 const PROTECTED_PREFIXES = ['/home'];
 const AUTH_PAGES = ['/login', '/signup'];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { response, user } = await updateSession(request);
   const { pathname } = request.nextUrl;
 
@@ -1317,8 +1326,8 @@ export const config = {
 - [ ] **Step 2: Commit**
 
 ```bash
-git add src/middleware.ts
-git commit -m "feat(auth): middleware protects /home and redirects authed users from /login"
+git add src/proxy.ts
+git commit -m "feat(auth): proxy protects /home and redirects authed users from /login"
 ```
 
 ---
