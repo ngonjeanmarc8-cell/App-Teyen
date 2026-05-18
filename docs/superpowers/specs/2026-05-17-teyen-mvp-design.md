@@ -239,8 +239,8 @@ Pas de matching exact. Appel d'un LLM-juge avec rubrique (grammar 0-3, lexicon 0
 ## 10. À décider au moment du plan d'implémentation
 
 Ces points ne bloquent pas le design mais devront être tranchés dans le plan :
-- Stack technique exacte (recommandation à venir : Next.js + TypeScript + Postgres managé + Anthropic API, mais à confirmer selon l'apprentissage du dev).
+- Stack technique exacte (recommandation à venir : Next.js + TypeScript + Postgres managé + OpenAI API, mais à confirmer selon l'apprentissage du dev).
 - Hébergeur (Vercel, Render, autre).
 - Provider DB (Supabase, Neon, autre).
-- Fournisseur LLM (Anthropic Claude par défaut, possibilité d'avoir un fallback).
+- Fournisseur LLM (OpenAI par défaut, possibilité d'avoir un fallback).
 - Outil d'auth (managed via Supabase Auth ou self-rolled simple).

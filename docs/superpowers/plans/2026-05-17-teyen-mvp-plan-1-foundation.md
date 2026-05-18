@@ -10,7 +10,7 @@
 - Next.js 15 (App Router) + TypeScript strict
 - Supabase (Postgres + Auth) — projet "dev" et un projet "test" séparé
 - Drizzle ORM + drizzle-kit pour migrations
-- Anthropic SDK (`@anthropic-ai/sdk`) — installé mais pas encore utilisé
+- OpenAI SDK (`openai`) — installé mais pas encore utilisé
 - Vitest pour tests unitaires
 - Playwright pour tests E2E
 - Biome pour lint + format
@@ -28,7 +28,7 @@ Ces actions sont à faire **par l'utilisateur**, en une fois, avant de lancer le
 2. **pnpm** installé : `npm install -g pnpm` (ou via Corepack : `corepack enable`).
 3. **Compte Supabase** créé sur https://supabase.com.
 4. **Compte Vercel** créé sur https://vercel.com et lié à GitHub.
-5. **Compte Anthropic** avec clé API (pas encore utilisée mais on la stocke).
+5. **Compte OpenAI** avec clé API (pas encore utilisée mais on la stocke).
 6. **Repo GitHub vide** créé (nom suggéré : `teyen`) où on poussera le code à la fin.
 
 On va créer deux **projets Supabase** distincts pour ce plan :
@@ -462,7 +462,7 @@ describe('parseEnv', () => {
       NEXT_PUBLIC_SUPABASE_ANON_KEY: 'anon-key',
       SUPABASE_SERVICE_ROLE_KEY: 'service-key',
       DATABASE_URL: 'postgres://user:pass@host:5432/db',
-      ANTHROPIC_API_KEY: 'sk-ant-xxx',
+      OPENAI_API_KEY: 'sk-openai-xxx',
       NODE_ENV: 'test',
     });
     expect(env.NEXT_PUBLIC_SUPABASE_URL).toBe('https://abc.supabase.co');
@@ -475,7 +475,7 @@ describe('parseEnv', () => {
         NEXT_PUBLIC_SUPABASE_ANON_KEY: 'k',
         SUPABASE_SERVICE_ROLE_KEY: 'k',
         DATABASE_URL: 'postgres://x',
-        ANTHROPIC_API_KEY: 'k',
+        OPENAI_API_KEY: 'k',
         NODE_ENV: 'test',
       }),
     ).toThrowError(/NEXT_PUBLIC_SUPABASE_URL/);
@@ -488,7 +488,7 @@ describe('parseEnv', () => {
         NEXT_PUBLIC_SUPABASE_ANON_KEY: 'k',
         SUPABASE_SERVICE_ROLE_KEY: 'k',
         DATABASE_URL: 'postgres://x',
-        ANTHROPIC_API_KEY: 'k',
+        OPENAI_API_KEY: 'k',
         NODE_ENV: 'test',
       }),
     ).toThrowError(/NEXT_PUBLIC_SUPABASE_URL/);
@@ -516,7 +516,7 @@ const envSchema = z.object({
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   DATABASE_URL: z.string().min(1),
-  ANTHROPIC_API_KEY: z.string().min(1),
+  OPENAI_API_KEY: z.string().min(1),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 });
 
@@ -555,7 +555,7 @@ NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 DATABASE_URL=postgres://postgres:password@host:5432/postgres
-ANTHROPIC_API_KEY=sk-ant-xxx
+OPENAI_API_KEY=sk-openai-xxx
 NODE_ENV=development
 ```
 
@@ -586,20 +586,20 @@ Spec et plans : `docs/superpowers/`.
 
 ## Stack
 
-Next.js 15, TypeScript, Supabase (Postgres + Auth), Drizzle ORM, Anthropic SDK, Vitest, Playwright, Biome.
+Next.js 15, TypeScript, Supabase (Postgres + Auth), Drizzle ORM, OpenAI SDK, Vitest, Playwright, Biome.
 
 ## Pré-requis
 
 - Node.js ≥ 20
 - pnpm
-- Comptes : Supabase, Vercel, Anthropic, GitHub
+- Comptes : Supabase, Vercel, OpenAI, GitHub
 
 ## Setup local
 
 \`\`\`bash
 pnpm install
 cp .env.example .env.local
-# Remplir .env.local avec les clés du projet Supabase dev et la clé Anthropic
+# Remplir .env.local avec les clés du projet Supabase dev et la clé OpenAI
 pnpm db:migrate
 pnpm dev
 \`\`\`
@@ -657,7 +657,7 @@ Project Settings → Database → Connection string → URI mode (cocher "use co
 cp .env.example .env.local
 ```
 
-Éditer `.env.local`, remplir avec les vraies valeurs du projet dev + la clé Anthropic.
+Éditer `.env.local`, remplir avec les vraies valeurs du projet dev + la clé OpenAI.
 
 - [ ] **Step 5: Vérifier que `.env.local` est ignoré par git**
 
@@ -678,7 +678,7 @@ NEXT_PUBLIC_SUPABASE_URL=https://teyen-test.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=test-anon-key
 SUPABASE_SERVICE_ROLE_KEY=test-service-key
 DATABASE_URL=postgres://postgres:password@host:5432/postgres
-ANTHROPIC_API_KEY=sk-ant-test
+OPENAI_API_KEY=sk-openai-test
 NODE_ENV=test
 ```
 
@@ -2120,7 +2120,7 @@ jobs:
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY_TEST }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY_TEST }}
       DATABASE_URL: ${{ secrets.DATABASE_URL_TEST }}
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       NODE_ENV: test
 
     steps:
@@ -2194,9 +2194,9 @@ Sur GitHub : Settings → Secrets and variables → Actions → New repository s
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY_TEST`
 - `SUPABASE_SERVICE_ROLE_KEY_TEST`
 - `DATABASE_URL_TEST`
-- `ANTHROPIC_API_KEY`
+- `OPENAI_API_KEY`
 
-Avec les valeurs du projet `teyen-test` et la clé Anthropic.
+Avec les valeurs du projet `teyen-test` et la clé OpenAI.
 
 - [ ] **Step 3: Vérifier que le CI tourne**
 
@@ -2219,7 +2219,7 @@ Dans la config Vercel du projet, onglet "Environment Variables" :
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `DATABASE_URL`
-- `ANTHROPIC_API_KEY`
+- `OPENAI_API_KEY`
 - `NODE_ENV=production`
 
 Note : on déploie d'abord le projet dev en prod Vercel — c'est OK pour un MVP. Plus tard on créera un projet Supabase prod dédié.
@@ -2259,5 +2259,5 @@ Aucun comportement métier (placement, exercices, chat, engine) n'est implément
 
 - **Plan 2** : profil utilisateur (UI + persistance), exercise generator initial (1-2 types), orchestration du placement adaptatif, initialisation `skill_levels`.
 - **Plan 3** : pedagogical_engine déterministe avec tests unitaires complets.
-- **Plan 4** : chat agent (Anthropic SDK + tools), page chat, cartes exercice, LLM-juge writing.
+- **Plan 4** : chat agent (OpenAI SDK + tools), page chat, cartes exercice, LLM-juge writing.
 - **Plan 5** : progress_tracker UI, série de jours, résumé de conversation, cost cap, suppression compte.

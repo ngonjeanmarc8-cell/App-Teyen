@@ -6,20 +6,20 @@ Spec et plans : `docs/superpowers/`.
 
 ## Stack
 
-Next.js 16, TypeScript, Supabase (Postgres + Auth), Drizzle ORM, Anthropic SDK, Vitest, Playwright, Biome.
+Next.js 16, TypeScript, Supabase (Postgres + Auth), Drizzle ORM, OpenAI SDK, Vitest, Playwright, Biome.
 
 ## Pré-requis
 
 - Node.js ≥ 20
 - pnpm
-- Comptes : Supabase, Vercel, Anthropic, GitHub
+- Comptes : Supabase, Vercel, OpenAI, GitHub
 
 ## Setup local
 
 ```bash
 pnpm install
 cp .env.example .env.local
-# Remplir .env.local avec les clés du projet Supabase dev et la clé Anthropic
+# Remplir .env.local avec les clés du projet Supabase dev et la clé OpenAI
 pnpm db:migrate
 pnpm dev
 ```

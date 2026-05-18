@@ -8,7 +8,7 @@ describe('parseEnv', () => {
       NEXT_PUBLIC_SUPABASE_ANON_KEY: 'anon-key',
       SUPABASE_SERVICE_ROLE_KEY: 'service-key',
       DATABASE_URL: 'postgres://user:pass@host:5432/db',
-      ANTHROPIC_API_KEY: 'sk-ant-xxx',
+      OPENAI_API_KEY: 'sk-openai-xxx',
       NODE_ENV: 'test',
     });
     expect(env.NEXT_PUBLIC_SUPABASE_URL).toBe('https://abc.supabase.co');
@@ -21,7 +21,7 @@ describe('parseEnv', () => {
         NEXT_PUBLIC_SUPABASE_ANON_KEY: 'k',
         SUPABASE_SERVICE_ROLE_KEY: 'k',
         DATABASE_URL: 'postgres://x',
-        ANTHROPIC_API_KEY: 'k',
+        OPENAI_API_KEY: 'k',
         NODE_ENV: 'test',
       }),
     ).toThrowError(/NEXT_PUBLIC_SUPABASE_URL/);
@@ -34,7 +34,7 @@ describe('parseEnv', () => {
         NEXT_PUBLIC_SUPABASE_ANON_KEY: 'k',
         SUPABASE_SERVICE_ROLE_KEY: 'k',
         DATABASE_URL: 'postgres://x',
-        ANTHROPIC_API_KEY: 'k',
+        OPENAI_API_KEY: 'k',
         NODE_ENV: 'test',
       }),
     ).toThrowError(/NEXT_PUBLIC_SUPABASE_URL/);
