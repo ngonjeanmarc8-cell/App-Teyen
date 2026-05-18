@@ -45,3 +45,24 @@ test('/home redirects to /login when not authenticated', async ({ page }) => {
   await page.goto('/home');
   await expect(page).toHaveURL(/\/login$/);
 });
+
+test('/api/me returns user when authed, 401 when not', async ({ page, request }) => {
+  // Unauthed
+  const unauthed = await request.get('/api/me');
+  expect(unauthed.status()).toBe(401);
+
+  // Sign up to get a session
+  const email = `me+${Date.now()}@teyen.test`;
+  const password = 'TestPassword123!';
+  await page.goto('/signup');
+  await page.getByLabel('Email').fill(email);
+  await page.getByLabel('Mot de passe').fill(password);
+  await page.getByRole('button', { name: /Créer mon compte/i }).click();
+  await expect(page).toHaveURL(/\/home$/);
+
+  // Now /api/me should return the user
+  const authed = await page.request.get('/api/me');
+  expect(authed.status()).toBe(200);
+  const json = await authed.json();
+  expect(json.email).toBe(email);
+});
