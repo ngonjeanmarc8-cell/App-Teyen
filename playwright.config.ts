@@ -1,4 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
+import { config } from 'dotenv';
+
+// Load env for the Playwright process (so test code can read it if needed).
+config({ path: '.env.test' });
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -15,7 +19,10 @@ export default defineConfig({
   webServer: process.env.E2E_BASE_URL
     ? undefined
     : {
-        command: 'pnpm dev',
+        // Pass .env.test to the spawned Next dev server so it talks to teyen-test.
+        command: process.env.CI
+          ? 'pnpm next dev'
+          : 'pnpm exec dotenv -e .env.test -- pnpm next dev',
         url: 'http://localhost:3000',
         reuseExistingServer: !process.env.CI,
         timeout: 60_000,
