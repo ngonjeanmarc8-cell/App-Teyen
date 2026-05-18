@@ -13,10 +13,16 @@
     "format": "biome format --write .",
     "typecheck": "tsc --noEmit",
     "e2e": "playwright test",
-    "e2e:ui": "playwright test --ui"
+    "e2e:ui": "playwright test --ui",
+    "db:generate": "dotenv -e .env.local -- drizzle-kit generate",
+    "db:migrate": "dotenv -e .env.local -- tsx src/db/migrate.ts",
+    "db:studio": "dotenv -e .env.local -- drizzle-kit studio",
+    "db:push": "dotenv -e .env.local -- drizzle-kit push"
   },
   "dependencies": {
+    "drizzle-orm": "^0.45.2",
     "next": "16.2.6",
+    "postgres": "^3.4.9",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "zod": "^4.4.3"
@@ -29,7 +35,11 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitest/coverage-v8": "^4.1.6",
+    "dotenv": "^17.4.2",
+    "dotenv-cli": "^11.0.0",
+    "drizzle-kit": "^0.31.10",
     "tailwindcss": "^4",
+    "tsx": "^4.22.1",
     "typescript": "^5",
     "vitest": "^4.1.6"
   }
