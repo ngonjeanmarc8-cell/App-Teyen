@@ -1,5 +1,8 @@
 import path from 'node:path';
+import { config } from 'dotenv';
 import { defineConfig } from 'vitest/config';
+
+config({ path: '.env.test' });
 
 export default defineConfig({
   test: {
@@ -8,7 +11,5 @@ export default defineConfig({
     globals: false,
     coverage: { provider: 'v8', reporter: ['text', 'html'] },
   },
-  resolve: {
-    alias: { '@': path.resolve(__dirname, './src') },
-  },
+  resolve: { alias: { '@': path.resolve(__dirname, './src') } },
 });
