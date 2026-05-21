@@ -60,7 +60,7 @@ export const skillLevels = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     skill: skillKind('skill').notNull(),
-    cefrEstimate: numeric('cefr_estimate', { precision: 4, scale: 2 }).notNull(),
+    cefrEstimate: numeric('cefr_estimate', { precision: 5, scale: 3 }).notNull(),
     confidence: numeric('confidence', { precision: 3, scale: 2 }).notNull().default('0.30'),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

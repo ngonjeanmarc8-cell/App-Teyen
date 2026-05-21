@@ -1,0 +1,1 @@
+ALTER TABLE "skill_levels" ALTER COLUMN "cefr_estimate" SET DATA TYPE numeric(5, 3);

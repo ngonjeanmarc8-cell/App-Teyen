@@ -35,4 +35,10 @@ describe('applyAttempt', () => {
     expect(applyAttempt(3, 0.94, 1).confidence).toBe(0.95);
     expect(applyAttempt(3, 0.95, 1).confidence).toBe(0.95);
   });
+
+  it('still moves the level at max confidence (no freeze from rounding)', () => {
+    // delta = 0.1 * (1 - 0.95) = 0.005; must survive rounding (3 decimals)
+    expect(applyAttempt(3, 0.95, 1).level).toBe(3.005);
+    expect(applyAttempt(3, 0.95, 0).level).toBe(2.995);
+  });
 });

@@ -47,7 +47,7 @@ export function PracticeClient() {
   }, []);
 
   async function answer(selectedIndex: number) {
-    if (!item || feedback) return;
+    if (!item || feedback || loading) return;
     setLoading(true);
     setError(null);
     try {
