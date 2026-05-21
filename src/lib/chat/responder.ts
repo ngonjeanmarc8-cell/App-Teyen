@@ -48,12 +48,14 @@ export const fakeResponder: ChatResponder = async (messages) => {
 function toOpenAiMessages(messages: AgentMessage[]): OpenAI.ChatCompletionMessageParam[] {
   return messages.map((m) => {
     if (m.role === 'assistant') {
+      const hasToolCalls = m.toolCalls && m.toolCalls.length > 0;
       return {
         role: 'assistant',
-        content: m.content,
-        ...(m.toolCalls && m.toolCalls.length > 0
+        // OpenAI requires content to be null (not '') when tool_calls are present.
+        content: hasToolCalls ? m.content || null : m.content,
+        ...(hasToolCalls
           ? {
-              tool_calls: m.toolCalls.map((tc) => ({
+              tool_calls: m.toolCalls?.map((tc) => ({
                 id: tc.id,
                 type: 'function' as const,
                 function: { name: tc.name, arguments: tc.arguments },

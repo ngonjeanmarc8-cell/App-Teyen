@@ -47,7 +47,7 @@ export async function runChatTurn(userId: string, userMessage: string): Promise<
 
   const respond = getResponder();
 
-  for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
+  for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
     const result = await respond(messages);
 
     if (result.toolCalls.length === 0) {
