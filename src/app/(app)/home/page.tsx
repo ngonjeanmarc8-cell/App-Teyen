@@ -1,5 +1,7 @@
 import { eq } from 'drizzle-orm';
+import Link from 'next/link';
 import { LogoutButton } from '@/components/logout-button';
+import { Button } from '@/components/ui/button';
 import { db } from '@/db';
 import { skillLevels } from '@/db/schema';
 import { levelToLabel } from '@/lib/cefr';
@@ -47,6 +49,10 @@ export default async function HomePage() {
           bientôt.
         </p>
       </div>
+
+      <Link href="/practice">
+        <Button>Commencer une session de pratique</Button>
+      </Link>
 
       <LogoutButton />
     </section>
