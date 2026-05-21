@@ -1,9 +1,10 @@
 import { and, desc, eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { attempts, exercises, profiles, skillLevels } from '@/db/schema';
+import { levelToLabel } from '@/lib/cefr';
 import type { ExerciseGenerator } from '@/lib/exercises/generator';
 import type { Skill } from '@/lib/exercises/types';
-import { pickTopic, type SkillLevel, selectLevel, selectSkill } from './selection';
+import { isColdStart, pickTopic, type SkillLevel, selectLevel, selectSkill } from './selection';
 import { applyAttempt } from './update';
 
 const PRACTICE_DOMAIN = 'practice';
@@ -144,4 +145,28 @@ export async function submitPractice(
   }
 
   return { correct, correctIndex: key.correctIndex, rationale: key.rationale };
+}
+
+export type FocusRecommendation = {
+  skill: Skill;
+  levelLabel: string;
+  topic: string;
+  reason: string;
+};
+
+// Lightweight: decides what to focus on next WITHOUT generating/persisting an exercise.
+export async function recommendFocus(userId: string): Promise<FocusRecommendation> {
+  const levels = await loadSkillLevels(userId);
+  const count = await practiceCount(userId);
+  const seed = daySeed(userId) + count;
+
+  const skill = selectSkill(levels, count, seed);
+  const skillLevel = levels.find((l) => l.skill === skill);
+  const level = skillLevel ? selectLevel(skillLevel) : 3;
+  const topic = pickTopic(await profilePool(userId), await lastPracticeTopic(userId), seed);
+  const reason = isColdStart(levels)
+    ? 'exploring all four skills to refine the level estimate'
+    : 'this is currently the weakest skill';
+
+  return { skill, levelLabel: levelToLabel(level), topic, reason };
 }
