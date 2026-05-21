@@ -11,3 +11,4 @@ export function openai(): OpenAI {
 }
 
 export const GENERATION_MODEL = 'gpt-4o-mini';
+export const CHAT_MODEL = 'gpt-4o-mini';
