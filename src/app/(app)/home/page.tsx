@@ -54,6 +54,10 @@ export default async function HomePage() {
         <Button>Commencer une session de pratique</Button>
       </Link>
 
+      <Link href="/chat">
+        <Button variant="ghost">Discuter avec le tuteur</Button>
+      </Link>
+
       <LogoutButton />
     </section>
   );
