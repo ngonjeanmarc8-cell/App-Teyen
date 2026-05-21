@@ -92,6 +92,7 @@ export function PlacementClient() {
             key={opt}
             variant="ghost"
             className="justify-start"
+            disabled={loading}
             onClick={() => void answer(i)}
           >
             {opt}

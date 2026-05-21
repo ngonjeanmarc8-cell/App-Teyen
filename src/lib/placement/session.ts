@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { attempts, exercises, skillLevels } from '@/db/schema';
 import type { ExerciseGenerator } from '@/lib/exercises/generator';
@@ -124,13 +124,23 @@ export async function recordAnswer(
   const key = ex.answerKey as { correctIndex: number; rationale: string };
   const correct = key.correctIndex === selectedIndex;
 
-  await db.insert(attempts).values({
-    userId,
-    exerciseId,
-    response: String(selectedIndex),
-    score: correct ? '1' : '0',
-    feedback: key.rationale,
-  });
+  // Idempotent: a double-submit for the same exercise must not create a second
+  // attempt (which would over-count the 12-item placement and skew estimates).
+  const existing = await db
+    .select({ id: attempts.id })
+    .from(attempts)
+    .where(and(eq(attempts.userId, userId), eq(attempts.exerciseId, exerciseId)))
+    .limit(1);
+
+  if (existing.length === 0) {
+    await db.insert(attempts).values({
+      userId,
+      exerciseId,
+      response: String(selectedIndex),
+      score: correct ? '1' : '0',
+      feedback: key.rationale,
+    });
+  }
 
   const done = await answeredCount(userId);
   return { correct, complete: done >= plannedSlots().length };

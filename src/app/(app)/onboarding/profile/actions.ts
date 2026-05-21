@@ -1,6 +1,5 @@
 'use server';
 
-import { eq } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { db } from '@/db';
@@ -33,15 +32,27 @@ export async function saveProfileAction(
     return { ok: false, error: 'Choisis au moins un domaine.' };
   }
 
+  // Upsert: the signup trigger normally seeds an empty profile row, but don't
+  // rely on it — a missing row would otherwise leave profileComplete false and
+  // bounce the user back into an onboarding redirect loop.
   await db
-    .update(profiles)
-    .set({
+    .insert(profiles)
+    .values({
+      userId: user.id,
       domains: parsed.data.domains,
       interests: parsed.data.interests,
       goalText: parsed.data.goalText,
       updatedAt: new Date(),
     })
-    .where(eq(profiles.userId, user.id));
+    .onConflictDoUpdate({
+      target: profiles.userId,
+      set: {
+        domains: parsed.data.domains,
+        interests: parsed.data.interests,
+        goalText: parsed.data.goalText,
+        updatedAt: new Date(),
+      },
+    });
 
   redirect('/home');
 }
