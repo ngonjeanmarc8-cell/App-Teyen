@@ -21,19 +21,23 @@ export const fakeGenerator: ExerciseGenerator = async (spec) => {
   };
 };
 
+const NON_READING_RULE =
+  'The question must be fully self-contained and must NOT refer to any passage, text, or article. Set the "passage" field to null.';
+
 const SKILL_INSTRUCTIONS: Record<GenerationSpec['skill'], string> = {
-  reading: 'Write a 2-4 sentence English passage, then a comprehension question with 4 options.',
-  writing:
-    'Write a question asking which of 4 sentences is the most natural, well-formed English. No passage.',
-  vocab:
-    'Write a vocabulary question (meaning, synonym, or best word to fill a blank) with 4 options. No passage.',
-  grammar:
-    'Write a grammar question (verb form, tense, preposition, article...) with 4 options. No passage.',
+  reading:
+    'Put a self-contained 2-4 sentence English passage in the "passage" field (it must NOT be empty), then write a comprehension question in "prompt" with 4 options. The question must be answerable ONLY from the passage.',
+  writing: `Write a question asking which of 4 sentences is the most natural, well-formed English. ${NON_READING_RULE}`,
+  vocab: `Write a vocabulary question (meaning, synonym, or best word to fill a blank) with 4 options. ${NON_READING_RULE}`,
+  grammar: `Write a grammar question (verb form, tense, preposition, article...) with 4 options. ${NON_READING_RULE}`,
 };
 
-export const openAiGenerator: ExerciseGenerator = async (spec) => {
+function isBlank(s: string | null): boolean {
+  return s === null || s.trim().length === 0;
+}
+
+async function generateOnce(spec: GenerationSpec, instruction: string): Promise<McqItem> {
   const label = levelToLabel(spec.level);
-  const instruction = SKILL_INSTRUCTIONS[spec.skill];
   const completion = await openai().chat.completions.parse({
     model: GENERATION_MODEL,
     messages: [
@@ -44,7 +48,7 @@ export const openAiGenerator: ExerciseGenerator = async (spec) => {
       },
       {
         role: 'user',
-        content: `Skill: ${spec.skill}. CEFR level: ${label}. Topic: ${spec.topic}. ${instruction} Set passage to null when not a reading item.`,
+        content: `Skill: ${spec.skill}. CEFR level: ${label}. Topic: ${spec.topic}. ${instruction}`,
       },
     ],
     response_format: zodResponseFormat(mcqItemSchema, 'mcq_item'),
@@ -54,6 +58,30 @@ export const openAiGenerator: ExerciseGenerator = async (spec) => {
     throw new Error('OpenAI returned no parsed mcq item');
   }
   return parsed;
+}
+
+export const openAiGenerator: ExerciseGenerator = async (spec) => {
+  const instruction = SKILL_INSTRUCTIONS[spec.skill];
+  let item = await generateOnce(spec, instruction);
+
+  // A reading question depends on its passage; the model occasionally leaves it
+  // empty. Retry once with a firmer instruction, then fail loudly rather than
+  // showing a question that references an invisible text.
+  if (spec.skill === 'reading' && isBlank(item.passage)) {
+    item = await generateOnce(
+      spec,
+      `${instruction} CRITICAL: the "passage" field MUST contain the full text and must not be empty.`,
+    );
+    if (isBlank(item.passage)) {
+      throw new Error('reading item generated without a passage');
+    }
+  }
+
+  // Non-reading items never carry a passage, even if the model added one.
+  if (spec.skill !== 'reading') {
+    return { ...item, passage: null };
+  }
+  return item;
 };
 
 export function getGenerator(): ExerciseGenerator {
