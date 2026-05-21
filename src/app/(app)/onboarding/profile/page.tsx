@@ -1,6 +1,14 @@
+import { requireOnboardingStep } from '@/lib/onboarding/gate';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { ProfileForm } from './profile-form';
 
-export default function ProfilePage() {
+export default async function ProfilePage() {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) await requireOnboardingStep(user.id, 'profile');
+
   return (
     <section className="space-y-6 pt-6">
       <div className="space-y-2">
