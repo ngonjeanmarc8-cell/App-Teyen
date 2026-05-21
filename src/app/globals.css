@@ -12,12 +12,10 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* The MVP UI is light-only (white/gray surfaces with dark text). We intentionally
+   do NOT follow the OS dark theme: doing so flipped the inherited text color to
+   near-white, making un-colored text (question prompts, reading passages) invisible
+   on our light backgrounds. A real dark theme can be designed later. */
 
 body {
   background: var(--background);
