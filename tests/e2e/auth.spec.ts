@@ -11,6 +11,17 @@ test('user can sign up, see home, log out and log back in', async ({ page }) => 
   await page.getByLabel('Email').fill(email);
   await page.getByLabel('Mot de passe').fill(password);
   await page.getByRole('button', { name: /Créer mon compte/i }).click();
+
+  // New users go through onboarding: placement (12 questions) then profile.
+  await expect(page).toHaveURL(/\/onboarding\/placement$/);
+  for (let i = 0; i < 12; i++) {
+    await expect(page.getByText(/Question \d+ \/ 12/)).toBeVisible();
+    await page.getByRole('button', { name: 'option A' }).click();
+  }
+  await expect(page).toHaveURL(/\/onboarding\/profile$/);
+  await page.getByLabel(/Business/i).check();
+  await page.getByRole('button', { name: /Terminer/i }).click();
+
   await expect(page).toHaveURL(/\/home$/);
   await expect(page.getByText(email).first()).toBeVisible();
 
@@ -58,6 +69,16 @@ test('/api/me returns user when authed, 401 when not', async ({ page, request })
   await page.getByLabel('Email').fill(email);
   await page.getByLabel('Mot de passe').fill(password);
   await page.getByRole('button', { name: /Créer mon compte/i }).click();
+
+  // Complete onboarding to get a valid session on /home.
+  await expect(page).toHaveURL(/\/onboarding\/placement$/);
+  for (let i = 0; i < 12; i++) {
+    await expect(page.getByText(/Question \d+ \/ 12/)).toBeVisible();
+    await page.getByRole('button', { name: 'option A' }).click();
+  }
+  await expect(page).toHaveURL(/\/onboarding\/profile$/);
+  await page.getByLabel(/Business/i).check();
+  await page.getByRole('button', { name: /Terminer/i }).click();
   await expect(page).toHaveURL(/\/home$/);
 
   // Now /api/me should return the user

@@ -16,6 +16,7 @@ jobs:
       DATABASE_URL: ${{ secrets.DATABASE_URL_TEST }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       NODE_ENV: test
+      PLACEMENT_FAKE: '1'
 
     steps:
       - uses: actions/checkout@v4

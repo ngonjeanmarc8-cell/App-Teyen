@@ -22,7 +22,7 @@ export default defineConfig({
         // Pass .env.test to the spawned Next dev server so it talks to teyen-test.
         command: process.env.CI
           ? 'pnpm next dev'
-          : 'pnpm exec dotenv -e .env.test -- pnpm next dev',
+          : 'pnpm exec dotenv -e .env.test -- cross-env PLACEMENT_FAKE=1 pnpm next dev',
         url: 'http://localhost:3000',
         reuseExistingServer: !process.env.CI,
         timeout: 60_000,
