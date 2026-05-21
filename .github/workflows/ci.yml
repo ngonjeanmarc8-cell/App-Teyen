@@ -17,6 +17,7 @@ jobs:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       NODE_ENV: test
       PLACEMENT_FAKE: '1'
+      CHAT_FAKE: '1'
 
     steps:
       - uses: actions/checkout@v4
