@@ -20,18 +20,28 @@ async function completeOnboarding(page: import('@playwright/test').Page) {
   await expect(page).toHaveURL(/\/home$/);
 }
 
-test('an onboarded user can practice: answer, see feedback, get the next one', async ({ page }) => {
+test('user picks a category, practices it, then switches category', async ({ page }) => {
+  test.setTimeout(60_000);
   await completeOnboarding(page);
 
   await page.getByRole('link', { name: /Commencer une session de pratique/i }).click();
   await expect(page).toHaveURL(/\/practice$/);
 
+  // Category picker first — no question until a category is chosen.
+  await expect(page.getByText(/Choisis ce que tu veux pratiquer/i)).toBeVisible();
+
+  // Pick Grammar → a question loads.
+  await page.getByRole('button', { name: 'Grammaire', exact: true }).click();
   await expect(page.getByRole('button', { name: 'option A' })).toBeVisible();
+
+  // Answer it → feedback + next.
   await page.getByRole('button', { name: 'option A' }).click();
-
   await expect(page.getByRole('button', { name: /Question suivante/i })).toBeVisible();
-
   await page.getByRole('button', { name: /Question suivante/i }).click();
+  await expect(page.getByRole('button', { name: 'option A' })).toBeVisible();
+
+  // Switch category via the tab → a new question loads.
+  await page.getByRole('button', { name: 'Vocabulaire', exact: true }).click();
   await expect(page.getByRole('button', { name: 'option A' })).toBeVisible();
 });
 

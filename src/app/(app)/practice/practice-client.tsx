@@ -1,7 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+
+const SKILLS = ['reading', 'writing', 'vocab', 'grammar'] as const;
+type Skill = (typeof SKILLS)[number];
+
+const SKILL_LABELS: Record<Skill, string> = {
+  reading: 'Compréhension écrite',
+  writing: 'Expression écrite',
+  vocab: 'Vocabulaire',
+  grammar: 'Grammaire',
+};
 
 type Item = {
   exerciseId: string;
@@ -13,25 +23,23 @@ type Item = {
 
 type Feedback = { correct: boolean; correctIndex: number; rationale: string };
 
-const SKILL_LABELS: Record<string, string> = {
-  reading: 'Compréhension écrite',
-  writing: 'Expression écrite',
-  vocab: 'Vocabulaire',
-  grammar: 'Grammaire',
-};
-
 export function PracticeClient() {
+  const [skill, setSkill] = useState<Skill | null>(null);
   const [item, setItem] = useState<Item | null>(null);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function loadNext() {
+  async function loadNext(targetSkill: Skill) {
     setLoading(true);
     setError(null);
     setFeedback(null);
     try {
-      const res = await fetch('/api/practice/next', { method: 'POST' });
+      const res = await fetch('/api/practice/next', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ skill: targetSkill }),
+      });
       if (!res.ok) throw new Error('network');
       setItem((await res.json()) as Item);
     } catch {
@@ -41,10 +49,12 @@ export function PracticeClient() {
     }
   }
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: load the first exercise once on mount
-  useEffect(() => {
-    void loadNext();
-  }, []);
+  function chooseSkill(target: Skill) {
+    if (target === skill && (item || loading)) return;
+    setSkill(target);
+    setItem(null);
+    void loadNext(target);
+  }
 
   async function answer(selectedIndex: number) {
     if (!item || feedback || loading) return;
@@ -65,62 +75,91 @@ export function PracticeClient() {
     }
   }
 
-  if (error) {
+  // No category chosen yet: show the picker.
+  if (!skill) {
     return (
       <div className="space-y-4">
-        <p role="alert" className="text-sm text-red-600">
-          {error}
-        </p>
-        <Button onClick={() => void loadNext()}>Réessayer</Button>
+        <p className="text-gray-700">Choisis ce que tu veux pratiquer :</p>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {SKILLS.map((s) => (
+            <Button
+              key={s}
+              variant="ghost"
+              className="justify-start border border-gray-200"
+              onClick={() => chooseSkill(s)}
+            >
+              {SKILL_LABELS[s]}
+            </Button>
+          ))}
+        </div>
       </div>
     );
   }
 
-  if (loading && !item) {
-    return <p className="text-gray-600">Chargement…</p>;
-  }
-
-  if (!item) {
-    return <p className="text-gray-600">Chargement…</p>;
-  }
-
   return (
     <div className="space-y-6">
-      <p className="text-xs uppercase tracking-wide text-gray-400">
-        {SKILL_LABELS[item.skill] ?? item.skill}
-      </p>
-      {item.passage && <p className="rounded-md bg-gray-100 p-4 text-sm">{item.passage}</p>}
-      <p className="font-medium">{item.prompt}</p>
-      <div className="grid gap-2">
-        {item.options.map((opt, i) => {
-          const isCorrect = feedback && i === feedback.correctIndex;
-          const tone = feedback
-            ? isCorrect
-              ? 'border-green-500 bg-green-50'
-              : 'border-gray-200'
-            : 'border-gray-200';
-          return (
-            <Button
-              key={opt}
-              variant="ghost"
-              className={`justify-start border ${tone}`}
-              disabled={loading || feedback !== null}
-              onClick={() => void answer(i)}
-            >
-              {opt}
-            </Button>
-          );
-        })}
-      </div>
-      {feedback && (
-        <div className="space-y-3">
-          <p
-            className={`text-sm font-medium ${feedback.correct ? 'text-green-700' : 'text-red-600'}`}
+      <div className="flex flex-wrap gap-2">
+        {SKILLS.map((s) => (
+          <Button
+            key={s}
+            variant="ghost"
+            aria-current={s === skill ? 'page' : undefined}
+            disabled={loading}
+            className={`border ${s === skill ? 'border-black font-semibold' : 'border-gray-200 text-gray-500'}`}
+            onClick={() => chooseSkill(s)}
           >
-            {feedback.correct ? 'Correct !' : 'Pas tout à fait.'}
+            {SKILL_LABELS[s]}
+          </Button>
+        ))}
+      </div>
+
+      {error && (
+        <div className="space-y-3">
+          <p role="alert" className="text-sm text-red-600">
+            {error}
           </p>
-          <p className="text-sm text-gray-700">{feedback.rationale}</p>
-          <Button onClick={() => void loadNext()}>Question suivante</Button>
+          <Button onClick={() => void loadNext(skill)}>Réessayer</Button>
+        </div>
+      )}
+
+      {loading && !item && <p className="text-gray-600">Chargement…</p>}
+
+      {item && (
+        <div className="space-y-6">
+          {item.passage && <p className="rounded-md bg-gray-100 p-4 text-sm">{item.passage}</p>}
+          <p className="font-medium">{item.prompt}</p>
+          <div className="grid gap-2">
+            {item.options.map((opt, i) => {
+              const isCorrect = feedback && i === feedback.correctIndex;
+              const tone = feedback
+                ? isCorrect
+                  ? 'border-green-500 bg-green-50'
+                  : 'border-gray-200'
+                : 'border-gray-200';
+              return (
+                <Button
+                  key={opt}
+                  variant="ghost"
+                  className={`justify-start border ${tone}`}
+                  disabled={loading || feedback !== null}
+                  onClick={() => void answer(i)}
+                >
+                  {opt}
+                </Button>
+              );
+            })}
+          </div>
+          {feedback && (
+            <div className="space-y-3">
+              <p
+                className={`text-sm font-medium ${feedback.correct ? 'text-green-700' : 'text-red-600'}`}
+              >
+                {feedback.correct ? 'Correct !' : 'Pas tout à fait.'}
+              </p>
+              <p className="text-sm text-gray-700">{feedback.rationale}</p>
+              <Button onClick={() => void loadNext(skill)}>Question suivante</Button>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -61,6 +61,7 @@ async function profilePool(userId: string): Promise<string[]> {
 export async function selectNextPractice(
   userId: string,
   generate: ExerciseGenerator,
+  requestedSkill?: Skill,
 ): Promise<{
   exerciseId: string;
   passage: string | null;
@@ -72,7 +73,9 @@ export async function selectNextPractice(
   const count = await practiceCount(userId);
   const seed = daySeed(userId) + count;
 
-  const skill = selectSkill(levels, count, seed);
+  // The learner picks the skill in the practice UI; fall back to the engine's
+  // two-phase auto-selection when none is requested.
+  const skill = requestedSkill ?? selectSkill(levels, count, seed);
   const skillLevel = levels.find((l) => l.skill === skill);
   const level = skillLevel ? selectLevel(skillLevel) : 3;
   const topic = pickTopic(await profilePool(userId), await lastPracticeTopic(userId), seed);
