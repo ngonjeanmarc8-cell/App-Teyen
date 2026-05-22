@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { AppNav } from '@/components/app-nav';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -12,7 +13,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="min-h-screen bg-gray-50">
       <header className="border-b border-gray-200 bg-white">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
-          <span className="text-lg font-semibold">Teyen</span>
+          <div className="flex items-center gap-6">
+            <span className="text-lg font-semibold">Teyen</span>
+            <AppNav />
+          </div>
           <span className="text-sm text-gray-600">{user.email}</span>
         </div>
       </header>
