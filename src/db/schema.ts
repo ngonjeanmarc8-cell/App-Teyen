@@ -30,6 +30,12 @@ export const knowledgeKind = pgEnum('knowledge_kind', ['vocab', 'grammar_rule'])
 
 export const turnRole = pgEnum('turn_role', ['user', 'assistant', 'tool', 'system_summary']);
 
+export const missionRunStatus = pgEnum('mission_run_status', [
+  'in_progress',
+  'success',
+  'incomplete',
+]);
+
 // --- TABLES ---
 
 // `users` mirrors a row from Supabase auth.users (linked by id).
@@ -126,6 +132,41 @@ export const knowledgeItems = pgTable(
   (t) => ({
     masteryRange: check('mastery_range', sql`${t.mastery} BETWEEN 0 AND 5`),
     userReviewIdx: index('knowledge_user_review_idx').on(t.userId, t.nextReviewAt),
+  }),
+);
+
+export const missionRuns = pgTable(
+  'mission_runs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    missionId: text('mission_id').notNull(),
+    status: missionRunStatus('status').notNull().default('in_progress'),
+    turnCount: integer('turn_count').notNull().default(0),
+    startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
+    endedAt: timestamp('ended_at', { withTimezone: true }),
+  },
+  (t) => ({
+    userStartedIdx: index('mission_runs_user_started_idx').on(t.userId, t.startedAt),
+  }),
+);
+
+export const missionTurns = pgTable(
+  'mission_turns',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    runId: uuid('run_id')
+      .notNull()
+      .references(() => missionRuns.id, { onDelete: 'cascade' }),
+    role: turnRole('role').notNull(),
+    content: text('content').notNull(),
+    correction: text('correction'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    runCreatedIdx: index('mission_turns_run_created_idx').on(t.runId, t.createdAt),
   }),
 );
 

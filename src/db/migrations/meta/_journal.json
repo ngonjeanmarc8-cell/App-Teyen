@@ -22,6 +22,13 @@
       "when": 1779359868986,
       "tag": "0002_thin_norrin_radd",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1779439251876,
+      "tag": "0003_faithful_junta",
+      "breakpoints": true
     }
   ]
 }
