@@ -34,11 +34,20 @@ export function RunClient({
 
   const [recording, setRecording] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
+  // Mirror soundOn in a ref so playReply (called after an in-flight request)
+  // reads the latest value, not the one captured when it was defined.
+  const soundOnRef = useRef(true);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
+  function toggleSound() {
+    const next = !soundOnRef.current;
+    soundOnRef.current = next;
+    setSoundOn(next);
+  }
+
   async function playReply(text: string) {
-    if (!soundOn) return;
+    if (!soundOnRef.current) return;
     try {
       const res = await fetch('/api/tts', {
         method: 'POST',
@@ -192,7 +201,7 @@ export function RunClient({
             >
               {recording ? '⏹ Arrêter' : '🎤 Parler'}
             </Button>
-            <Button type="button" variant="ghost" onClick={() => setSoundOn((s) => !s)}>
+            <Button type="button" variant="ghost" onClick={toggleSound}>
               {soundOn ? '🔊 Son activé' : '🔇 Son coupé'}
             </Button>
           </div>
