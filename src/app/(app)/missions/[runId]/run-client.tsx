@@ -46,8 +46,10 @@ export function RunClient({
     setSoundOn(next);
   }
 
+  // Plays the TTS for a text. Always plays when called directly (e.g. the
+  // "Écouter" button = a real user gesture, never blocked by autoplay policy).
+  // Auto-play after a turn is gated by soundOn at the call site instead.
   async function playReply(text: string) {
-    if (!soundOnRef.current) return;
     try {
       const res = await fetch('/api/tts', {
         method: 'POST',
@@ -99,7 +101,7 @@ export function RunClient({
       ]);
       setStatus(data.status);
       setTurnsLeft(data.turnsLeft);
-      void playReply(data.reply);
+      if (soundOnRef.current) void playReply(data.reply);
     } catch {
       setError('Petit souci. Réessaie.');
     } finally {
@@ -176,6 +178,15 @@ export function RunClient({
               {t.content}
             </span>
             {t.correction && <p className="mt-1 text-xs text-amber-700">✍️ {t.correction}</p>}
+            {t.role === 'assistant' && (
+              <button
+                type="button"
+                onClick={() => void playReply(t.content)}
+                className="mt-1 block text-xs text-gray-500 underline hover:text-black"
+              >
+                🔊 Écouter
+              </button>
+            )}
           </div>
         ))}
         {pending && <p className="text-sm text-gray-400">…</p>}
