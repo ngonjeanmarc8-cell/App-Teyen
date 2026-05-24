@@ -19,6 +19,7 @@ jobs:
       PLACEMENT_FAKE: '1'
       CHAT_FAKE: '1'
       MISSION_FAKE: '1'
+      AUDIO_FAKE: '1'
 
     steps:
       - uses: actions/checkout@v4
